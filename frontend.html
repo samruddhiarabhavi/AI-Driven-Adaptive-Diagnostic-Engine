@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AdaptIQ — Adaptive GRE Diagnostic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet" />
+<style>
+  /* ── Design System ─────────────────────────────────────── */
+  :root {
+    --bg:        #0a0a0f;
+    --surface:   #111118;
+    --border:    #1e1e2e;
+    --accent:    #7c6fff;
+    --accent2:   #ff6f91;
+    --green:     #3dffa0;
+    --red:       #ff5a7e;
+    --text:      #e8e8f0;
+    --muted:     #6a6a82;
+    --card:      #14141d;
+    --radius:    12px;
+    --font-head: 'Syne', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* grid overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,111,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,111,255,.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Layout ─────────────────────────────────────────────── */
+  .app {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 760px;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── Header ─────────────────────────────────────────────── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+  .logo-mark {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-head);
+    font-weight: 800;
+    font-size: 20px;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .brand h1 {
+    font-family: var(--font-head);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  .brand p { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+
+  /* ── Screens ─────────────────────────────────────────────── */
+  .screen { display: none; animation: fadeUp .3s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeUp {
+    from { opacity:0; transform: translateY(16px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  /* ── START SCREEN ────────────────────────────────────────── */
+  .start-hero {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 48px 40px;
+    text-align: center;
+  }
+  .start-hero h2 {
+    font-family: var(--font-head);
+    font-size: 36px;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -1px;
+    background: linear-gradient(90deg, var(--text), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+  }
+  .start-hero p {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 36px;
+    line-height: 1.7;
+  }
+  .features {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 36px;
+  }
+  .feature-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 11px;
+    text-align: left;
+  }
+  .feature-chip .icon { font-size: 18px; margin-bottom: 6px; display: block; }
+  .feature-chip span { color: var(--muted); }
+
+  .input-row {
+    display: flex;
+    gap: 12px;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  input[type="text"] {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+  input[type="text"]::placeholder { color: var(--muted); }
+
+  /* ── Buttons ─────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 400;
+    cursor: pointer;
+    border: none;
+    transition: all .2s;
+    white-space: nowrap;
+    letter-spacing: 0.03em;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: #6b5eee; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity:.4; cursor:not-allowed; transform:none; }
+
+  /* ── QUIZ SCREEN ─────────────────────────────────────────── */
+  .quiz-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+  }
+  .q-counter {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+  }
+  .ability-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .ability-val {
+    font-family: var(--font-mono);
+    color: var(--accent);
+    font-weight: 400;
+  }
+
+  /* Progress bar */
+  .progress-track {
+    height: 3px;
+    background: var(--border);
+    border-radius: 99px;
+    margin-bottom: 32px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 99px;
+    transition: width .6s cubic-bezier(.4,0,.2,1);
+  }
+
+  /* Topic tag */
+  .topic-tag {
+    display: inline-block;
+    background: rgba(124,111,255,.12);
+    color: var(--accent);
+    border: 1px solid rgba(124,111,255,.25);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 11px;
+    margin-bottom: 16px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+
+  /* Difficulty bar */
+  .diff-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .diff-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .diff-pips { display: flex; gap: 3px; }
+  .pip {
+    width: 20px; height: 4px;
+    border-radius: 99px;
+    background: var(--border);
+  }
+  .pip.on { background: var(--accent); }
+
+  /* Question card */
+  .question-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 16px;
+  }
+  .question-text {
+    font-family: var(--font-head);
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.45;
+    letter-spacing: -0.2px;
+    margin-bottom: 28px;
+  }
+
+  /* Options */
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .option-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    cursor: pointer;
+    transition: all .18s;
+    text-align: left;
+    width: 100%;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text);
+  }
+  .option-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: rgba(124,111,255,.06);
+  }
+  .option-btn.selected {
+    border-color: var(--accent);
+    background: rgba(124,111,255,.1);
+  }
+  .option-btn.correct {
+    border-color: var(--green);
+    background: rgba(61,255,160,.08);
+    color: var(--green);
+  }
+  .option-btn.wrong {
+    border-color: var(--red);
+    background: rgba(255,90,126,.08);
+    color: var(--red);
+  }
+  .option-btn:disabled { cursor: default; }
+  .opt-key {
+    width: 26px; height: 26px;
+    background: var(--border);
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    flex-shrink: 0;
+    font-weight: 400;
+  }
+
+  /* Feedback panel */
+  .feedback {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    line-height: 1.7;
+    display: none;
+  }
+  .feedback.visible { display: block; animation: fadeUp .25s ease; }
+  .feedback-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-head);
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .feedback-head.ok  { color: var(--green); }
+  .feedback-head.err { color: var(--red); }
+  .feedback p { color: var(--muted); }
+
+  .next-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+
+  /* ── RESULTS SCREEN ──────────────────────────────────────── */
+  .results-header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .results-header h2 {
+    font-family: var(--font-head);
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    background: linear-gradient(90deg, var(--green), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+  .results-header p { color: var(--muted); font-size: 13px; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+  .stat-card .val {
+    font-family: var(--font-head);
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .stat-card .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+
+  /* Topic breakdown */
+  .topic-table {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 28px;
+  }
+  .topic-table h3 {
+    font-family: var(--font-head);
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+  .topic-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .topic-name { width: 120px; font-size: 12px; color: var(--text); flex-shrink: 0; }
+  .topic-bar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .topic-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width .8s cubic-bezier(.4,0,.2,1);
+  }
+  .topic-pct { width: 36px; font-size: 11px; color: var(--muted); text-align: right; flex-shrink: 0; }
+
+  /* Study plan */
+  .study-plan {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 28px;
+  }
+  .study-plan h3 {
+    font-family: var(--font-head);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .plan-text {
+    font-size: 13px;
+    line-height: 1.85;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+  /* render **bold** inside plan text */
+  .plan-text b { color: var(--accent2); font-weight: 400; }
+
+  .loading-plan {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .restart-row { display: flex; justify-content: center; }
+
+  /* ── Toast ───────────────────────────────────────────────── */
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--red);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 12px;
+    opacity: 0;
+    transition: all .3s;
+    pointer-events: none;
+    z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 560px) {
+    .features { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .start-hero { padding: 28px 20px; }
+    .question-card { padding: 20px; }
+    .question-text { font-size: 16px; }
+    .input-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header>
+    <div class="logo-mark">A</div>
+    <div class="brand">
+      <h1>AdaptIQ</h1>
+      <p>Adaptive GRE Diagnostic Engine</p>
+    </div>
+  </header>
+
+  <!-- ── SCREEN: START ──────────────────────────────────────── -->
+  <div class="screen active" id="screen-start">
+    <div class="start-hero">
+      <h2>Know where you stand.<br/>Before exam day.</h2>
+      <p>Our IRT-powered engine adapts in real time to your ability.<br/>
+         10 questions. Personalised AI study plan at the end.</p>
+
+      <div class="features">
+        <div class="feature-chip">
+          <span class="icon"></span>
+          <strong>IRT Algorithm</strong><br/>
+          <span>Rasch model ability tracking</span>
+        </div>
+        <div class="feature-chip">
+          <span class="icon"></span>
+          <strong>5 GRE Topics</strong><br/>
+          <span>Algebra · Geometry · Vocab · Stats</span>
+        </div>
+        <div class="feature-chip">
+          <span class="icon"></span>
+          <strong>AI Study Plan</strong><br/>
+          <span>Claude-powered 3-step plan</span>
+        </div>
+      </div>
+
+      <div class="input-row">
+        <input type="text" id="student-id-input" placeholder="Enter your name or student ID" maxlength="40" />
+        <button class="btn btn-primary" id="start-btn" onclick="startSession()">Begin →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCREEN: QUIZ ───────────────────────────────────────── -->
+  <div class="screen" id="screen-quiz">
+
+    <div class="quiz-header">
+      <span class="q-counter" id="q-counter">Question 1 of 10</span>
+      <div class="ability-badge">
+        θ&nbsp;<span class="ability-val" id="ability-display">0.0000</span>
+      </div>
+    </div>
+
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-bar" style="width:0%"></div>
+    </div>
+
+    <div class="topic-tag" id="topic-tag">Topic</div>
+
+    <div class="diff-row">
+      <span class="diff-label">Difficulty</span>
+      <div class="diff-pips" id="diff-pips">
+        <div class="pip"></div><div class="pip"></div><div class="pip"></div>
+        <div class="pip"></div><div class="pip"></div>
+      </div>
+    </div>
+
+    <div class="question-card">
+      <div class="question-text" id="question-text">Loading…</div>
+      <div class="options" id="options-container"></div>
+    </div>
+
+    <div class="feedback" id="feedback">
+      <div class="feedback-head" id="feedback-head"></div>
+      <p id="feedback-explanation"></p>
+    </div>
+
+    <div class="next-row">
+      <button class="btn btn-primary" id="next-btn" style="display:none" onclick="nextQuestion()">
+        Next question →
+      </button>
+    </div>
+  </div>
+
+  <!-- ── SCREEN: RESULTS ───────────────────────────────────── -->
+  <div class="screen" id="screen-results">
+    <div class="results-header">
+      <h2>Diagnostic Complete </h2>
+      <p id="results-subtitle">Here's how you performed.</p>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><span class="val" id="res-score">—</span><span class="lbl">Accuracy</span></div>
+      <div class="stat-card"><span class="val" id="res-ability">—</span><span class="lbl">Ability θ</span></div>
+      <div class="stat-card"><span class="val" id="res-level">—</span><span class="lbl">Level</span></div>
+    </div>
+
+    <div class="topic-table">
+      <h3>Topic Breakdown</h3>
+      <div id="topic-breakdown"></div>
+    </div>
+
+    <div class="study-plan">
+      <h3>✦ AI Study Plan</h3>
+      <div id="study-plan-content">
+        <div class="loading-plan"><div class="spinner"></div> Generating your personalised plan…</div>
+      </div>
+    </div>
+
+    <div class="restart-row">
+      <button class="btn btn-primary" onclick="restart()">Start New Session</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = 'http://localhost:8000';
+  let sessionId = null;
+  let currentQuestion = null;
+  let selectedAnswer = null;
+  let answered = false;
+
+  // ── Utilities ───────────────────────────────────────────────
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+  }
+
+  function toast(msg, duration = 3000) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), duration);
+  }
+
+  async function api(method, path, body) {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(API + path, opts);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(err.detail || 'API error');
+    }
+    return res.json();
+  }
+
+  // ── Start ────────────────────────────────────────────────────
+
+  async function startSession() {
+    const studentId = document.getElementById('student-id-input').value.trim();
+    if (!studentId) { toast('Please enter your name or student ID.'); return; }
+    const btn = document.getElementById('start-btn');
+    btn.disabled = true;
+    btn.textContent = 'Starting…';
+    try {
+      const data = await api('POST', '/sessions/start', { student_id: studentId });
+      sessionId = data.session_id;
+      showScreen('quiz');
+      await loadNextQuestion();
+    } catch (e) {
+      toast('Could not reach backend: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Begin →';
+    }
+  }
+
+  // ── Load next question ────────────────────────────────────────
+
+  async function loadNextQuestion() {
+    answered = false;
+    selectedAnswer = null;
+    document.getElementById('feedback').classList.remove('visible');
+    document.getElementById('next-btn').style.display = 'none';
+
+    try {
+      const data = await api('GET', `/questions/next/${sessionId}`);
+      currentQuestion = data.question;
+
+      // Header
+      document.getElementById('q-counter').textContent =
+        `Question ${data.question_number} of ${data.total_questions}`;
+      document.getElementById('ability-display').textContent =
+        data.current_ability.toFixed(4);
+      document.getElementById('progress-bar').style.width =
+        `${(data.question_number - 1) / data.total_questions * 100}%`;
+
+      // Topic + difficulty
+      document.getElementById('topic-tag').textContent = currentQuestion.topic;
+      renderDifficulty(currentQuestion.difficulty);
+
+      // Question
+      document.getElementById('question-text').textContent = currentQuestion.text;
+      renderOptions(currentQuestion.options);
+    } catch (e) {
+      toast('Error loading question: ' + e.message);
+    }
+  }
+
+  function renderDifficulty(d) {
+    const pips = document.querySelectorAll('#diff-pips .pip');
+    const level = Math.round(d * 5);     // 1–5 pips
+    pips.forEach((p, i) => p.classList.toggle('on', i < level));
+  }
+
+  function renderOptions(options) {
+    const keys = ['A', 'B', 'C', 'D'];
+    const container = document.getElementById('options-container');
+    container.innerHTML = '';
+    options.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.innerHTML = `<span class="opt-key">${keys[i]}</span>${opt}`;
+      btn.onclick = () => selectOption(btn, opt);
+      container.appendChild(btn);
+    });
+  }
+
+  // ── Select + Submit ──────────────────────────────────────────
+
+  function selectOption(btn, answer) {
+    if (answered) return;
+    answered = true;
+    selectedAnswer = answer;
+
+    // Highlight selected
+    document.querySelectorAll('.option-btn').forEach(b => {
+      b.disabled = true;
+      b.classList.remove('selected');
+    });
+    btn.classList.add('selected');
+
+    submitAnswer(answer);
+  }
+
+  async function submitAnswer(answer) {
+    try {
+      const data = await api('POST', '/sessions/submit', {
+        session_id: sessionId,
+        question_id: currentQuestion.id,
+        user_answer: answer,
+      });
+
+      // Highlight correct / wrong
+      document.querySelectorAll('.option-btn').forEach(btn => {
+        const text = btn.textContent.slice(1).trim(); // strip key letter
+        if (text === data.correct_answer.slice(3).trim() || btn.textContent.includes(data.correct_answer)) {
+          btn.classList.add('correct');
+        }
+      });
+
+      // Find and mark the selected btn
+      document.querySelectorAll('.option-btn').forEach(btn => {
+        if (btn.textContent.includes(answer) && !data.is_correct) {
+          btn.classList.remove('selected');
+          btn.classList.add('wrong');
+        }
+      });
+
+      // Feedback
+      const feedback = document.getElementById('feedback');
+      const head = document.getElementById('feedback-head');
+      head.className = 'feedback-head ' + (data.is_correct ? 'ok' : 'err');
+      head.textContent = data.is_correct ? '✓ Correct!' : '✗ Incorrect';
+      document.getElementById('feedback-explanation').textContent = data.explanation;
+      feedback.classList.add('visible');
+
+      // Update ability
+      document.getElementById('ability-display').textContent = data.updated_ability.toFixed(4);
+
+      if (data.session_complete) {
+        document.getElementById('next-btn').style.display = 'none';
+        setTimeout(() => showResults(data), 1200);
+      } else {
+        document.getElementById('next-btn').style.display = 'inline-flex';
+      }
+    } catch (e) {
+      toast('Submit error: ' + e.message);
+    }
+  }
+
+  async function nextQuestion() {
+    await loadNextQuestion();
+  }
+
+  // ── Results ──────────────────────────────────────────────────
+
+  async function showResults() {
+    showScreen('results');
+    try {
+      const data = await api('GET', `/sessions/${sessionId}`);
+      const total = data.responses.length;
+      const correct = data.responses.filter(r => r.is_correct).length;
+      const accuracy = Math.round(correct / total * 100);
+      const theta = data.final_ability;
+      const level = theta > 1.5 ? 'Advanced' : theta > 0.5 ? 'Proficient' : theta > -0.5 ? 'Developing' : 'Foundational';
+
+      document.getElementById('results-subtitle').textContent =
+        `${data.student_id} · ${total} questions answered`;
+      document.getElementById('res-score').textContent = accuracy + '%';
+      document.getElementById('res-ability').textContent = theta.toFixed(2);
+      document.getElementById('res-level').textContent = level;
+
+      // Topic breakdown
+      const topicStats = {};
+      data.responses.forEach(r => {
+        if (!topicStats[r.topic]) topicStats[r.topic] = { correct: 0, total: 0 };
+        topicStats[r.topic].total++;
+        if (r.is_correct) topicStats[r.topic].correct++;
+      });
+
+      const breakdown = document.getElementById('topic-breakdown');
+      breakdown.innerHTML = Object.entries(topicStats).map(([topic, s]) => {
+        const pct = Math.round(s.correct / s.total * 100);
+        const color = pct >= 70 ? 'var(--green)' : pct >= 40 ? 'var(--accent)' : 'var(--red)';
+        return `
+          <div class="topic-row">
+            <span class="topic-name">${topic}</span>
+            <div class="topic-bar-track">
+              <div class="topic-bar-fill" style="width:${pct}%;background:${color}"></div>
+            </div>
+            <span class="topic-pct">${pct}%</span>
+          </div>`;
+      }).join('');
+
+      // Study plan — poll until available
+      await pollStudyPlan(data);
+    } catch (e) {
+      toast('Error fetching results: ' + e.message);
+    }
+  }
+
+  async function pollStudyPlan(initialData) {
+    const container = document.getElementById('study-plan-content');
+
+    if (initialData.study_plan) {
+      renderPlan(container, initialData.study_plan);
+      return;
+    }
+
+    // Poll every 2s for up to 30s
+    for (let i = 0; i < 15; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      try {
+        const data = await api('GET', `/sessions/${sessionId}`);
+        if (data.study_plan) {
+          renderPlan(container, data.study_plan);
+          return;
+        }
+      } catch (_) {}
+    }
+    container.innerHTML = '<p style="color:var(--muted);font-size:13px">Study plan unavailable. Check your ANTHROPIC_API_KEY.</p>';
+  }
+
+  function renderPlan(container, text) {
+    // Convert **bold** markers to <b>
+    const html = text
+      .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+      .replace(/\n/g, '<br/>');
+    container.innerHTML = `<div class="plan-text">${html}</div>`;
+  }
+
+  // ── Restart ──────────────────────────────────────────────────
+
+  function restart() {
+    sessionId = null;
+    currentQuestion = null;
+    document.getElementById('student-id-input').value = '';
+    showScreen('start');
+  }
+
+  // Allow Enter key on input
+  document.getElementById('student-id-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') startSession();
+  });
+</script>
+</body>
+</html>
